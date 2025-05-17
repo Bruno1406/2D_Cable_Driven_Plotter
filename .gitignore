@@ -1,0 +1,6 @@
+build
+.cache
+.vscode
+
+# Ignore MacOS file system related.
+**/*.DS_Store*
