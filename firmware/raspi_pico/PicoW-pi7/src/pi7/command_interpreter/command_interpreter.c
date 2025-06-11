@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 // Drivers for UART, LED and Console(debug)
 //#include <cr_section_macros.h>
@@ -24,6 +25,7 @@
 #include "command_interpreter.h"
 #include "../trj_state/trj_state.h"
 #include "../trj_control/trj_control.h"
+#include "../trj_program/trj_program.h"
 
 // communication with TrajectoryController
 extern xQueueHandle qControlCommands;
@@ -94,9 +96,25 @@ int ctl_WriteRegister(int registerToWrite, int value) {
  Retorno:
     TRUE se escrita foi aceita, FALSE caso contrario.
 *************************************************************************/
-int ctl_WriteProgram(byte* program_bytes) {
+int ctl_WriteProgram(uint8_t* programBytes, uint16_t programSize) {
+   if (programSize % sizeof(tpr_Command) != 0) {
+      return INVALID_PROGRAM_ERR;
+   }
 
-  // TODO: implementar
-
-  return true; //TRUE;
+   size_t num_commands = programSize/sizeof(tpr_Command);
+   tpr_Command cmd;
+   int err = 0;
+  for (uint16_t i = 0; i <  num_commands; i++) {
+      memcpy(&cmd, &programBytes[i * sizeof(tpr_Command)], sizeof(tpr_Command));
+      if (cmd.code == G00 || cmd.code == G01) {
+         err = tpr_generateLinearSetPoints(&cmd);
+      }
+      else if (cmd.code == G02 || cmd.code == G03) {
+         err = tpr_generateCircularSetPoints(&cmd);
+      } else {
+         printf("Invalid command code: %d\n", cmd.code);
+         return INVALID_PROGRAM_ERR; // Invalid command code
+      }
+   }
+   return true; // TRUE;
 } // ctl_WriteRegister

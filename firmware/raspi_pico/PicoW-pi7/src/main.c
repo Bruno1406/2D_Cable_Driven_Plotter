@@ -148,7 +148,7 @@ static void setupHardware(void) {
 static void initComponents(void) {
 
   // communication between tasks
-  qControlCommands = xQueueCreate(CONTROL_Q_SIZE, sizeof(tpr_Data));
+  qControlCommands = xQueueCreate(CONTROL_Q_SIZE, sizeof(tpr_setPoint));
   qCommPIC = xQueueCreate(PIC_Q_SIZE, sizeof(pic_Data));
   qCommDev = xQueueCreate(DEV_Q_SIZE, sizeof(char));
 
