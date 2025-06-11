@@ -1,0 +1,9 @@
+1 - java -jar /Users/delar/PI7/antlr-4.13.2-complete.jar -Dlanguage=Python3 Gcode.g4
+
+2- python main.py (ou arquivo equivalente)
+
+3- 
+java -jar /Users/delar/PI7/antlr-4.13.2-complete.jar -Dlanguage=Java GCode.g4
+javac -cp "C:\Users\delar\PI7\antlr-4.13.2-complete.jar;%CLASSPATH%" GCode*.java (cria em java para testar no teste rig)
+
+4- java -Xmx500M -cp "C:\Users\delar\PI7\antlr-4.13.2-complete.jar;." org.antlr.v4.gui.TestRig GCode gcode example.gcode -gui (ou outro arquivo .gcode equivalente)
