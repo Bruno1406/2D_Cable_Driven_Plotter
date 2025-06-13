@@ -21,7 +21,7 @@ def build_fc21_write_file(unit_id, file_number, record_number, registers):
     byte_count = 9 + 2 * record_length
 
     subreq_header = struct.pack('>BHHH', reference_type, file_number, record_number, record_length)
-    data = b''.join(struct.pack('>H', reg) for reg in registers)
+    data = b''.join(struct.pack('>h', reg) for reg in registers)
     payload = to_ascii_hex(struct.pack('>BB', unit_id, function_code) + struct.pack('B', byte_count) + subreq_header + data)
     lrc = to_ascii_hex(compute_lrc(payload))
     ascii_frame = ':' + payload + lrc + '\r\n'
@@ -30,10 +30,10 @@ def build_fc21_write_file(unit_id, file_number, record_number, registers):
 def build_fc6_write_single(unit_id, register_address, value): #Nesse código envia o registrador que quero escrever e qual o valor dele
     """Constrói quadro ASCII Modbus FC6 (Write Single Register)."""
     function_code = 0x06
-    payload = struct.pack('>B B H H', unit_id, function_code, register_address, value)
+    payload = to_ascii_hex(struct.pack('>B B H H', unit_id, function_code, register_address, value))
 
-    lrc = compute_lrc(payload)
-    ascii_frame = ':' + to_ascii_hex(payload + lrc) + '\r\n'
+    lrc = to_ascii_hex(compute_lrc(payload))
+    ascii_frame = ':' + (payload + lrc) + '\r\n'
     return ascii_frame.encode('ascii')
 
 def build_fc3_read_registers(unit_id, start_address, quantity=1): #Nesse codigo envio o registrador que começo a ler no slave 
@@ -52,17 +52,4 @@ def send_ascii_packet(port_name, packet):
         ser.write(packet)
         response = ser.read_until(b'\r\n')
         return response.decode('ascii').strip()
-    
-
-if __name__ == "__main__":
-    # TESTES
-    unit_id = 1
-    file_number = 0
-    record_number = 0
-    registers = [0x1, 0xC143, 0xFFFF]
-    print(len(registers))
-    packet = build_fc21_write_file(unit_id, file_number, record_number, registers)
-    print(f'PACOTE TESTE: {packet}') 
-    response = send_ascii_packet('/dev/ttyACM0', packet)  # Ajuste o nome da porta conforme necessário
-    print(f"Resposta: {response}")
     

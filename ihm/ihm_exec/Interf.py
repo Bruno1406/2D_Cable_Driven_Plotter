@@ -1,17 +1,17 @@
 import tkinter as tk
 from tkinter import filedialog
 from antlr4 import *
-from GcodeLexer import GcodeLexer
-from GcodeParser import GcodeParser
-from GcodeListener import GcodeListener
-import modbus_ascii as modbus
+from ihm.Grammar_antlr.GcodeLexer import GcodeLexer
+from ihm.Grammar_antlr.GcodeParser import GcodeParser
+from ihm.Grammar_antlr.GcodeListener import GcodeListener
+import ihm.ihm_exec.modbus_ascii as modbus
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 unit_id = 1 #ID setado no slave, pode ser qualquer valor
-file_number = 10
-start_record = 6 #Nesse caso 6 porque os 5 primeiros registradores da "Memória da RASP" já estão sendo usados para start,pause,abort e guardar os valores atuais de X Y 
-port_name = "/dev/ttyUSB0" # Linux/Mac: algo como /dev/ttyUSB0 | Windows: COM3, COM4 etc.
+file_number = 0
+start_record = 0
+#port_name = "/dev/ttyUSB0" # Linux/Mac: algo como /dev/ttyUSB0 | Windows: COM3, COM4 etc.
 
 gcode_registers = []
 
@@ -40,13 +40,13 @@ def abrir_arquivo():
         listener = GcodeListener()
         ParseTreeWalker().walk(listener, tree)
         gcode_registers = listener.line_registers
+        print(gcode_registers)
         print("G-code processado.")
 
 def send():
-    for idx, regs in enumerate(gcode_registers):
-        packet = modbus.build_fc21_write_file(unit_id, file_number, start_record + idx, regs)
-        response = modbus.send_ascii_packet(port_name, packet)
-        print(f"Linha {idx+1}: {response}")
+        packet = modbus.build_fc21_write_file(unit_id, file_number, start_record, gcode_registers)
+        #response = modbus.send_ascii_packet(port_name, packet)
+        print(f"Linha: {packet}")
 
 def start():
     global rodando, pausado
@@ -126,6 +126,8 @@ def atualizar():
                     ax.autoscale_view()
 
                     canvas.draw()
+            except Exception as e:
+                print(f"Erro ao processar resposta: {e}")
 
 # Frame horizontal para os botões
 frame_botoes = tk.Frame(janela)

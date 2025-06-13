@@ -11,20 +11,14 @@ class GcodeListener(ParseTreeListener):
     def __init__(self):
         self.line_registers = []
 
-    def float_to_hex(self, f):
+    def float_to_int(self, f):
         """Converte float para representação hexadecimal (IEEE 754)"""
-        return ''.join('{:02X}'.format(b) for b in struct.pack('>f', float(f))) #Formato big-endian
+        return int (10*float(f)) 
 
-    def hex_sequence_to_registers(self, hex_seq):
-        """Converte uma lista de hexadecimais para registradores de 16 bits"""
+    def int_sequence_to_registers(self, int_seq):
         registers = []
-        for item in hex_seq:
-            if len(item) <= 4:
-                registers.append(int(item, 16))
-            else:
-                for i in range(0, len(item), 4):
-                    reg = int(item[i:i+4], 16)
-                    registers.append(reg)
+        for item in int_seq:
+            registers.append(item)
         return registers
 
     # Enter a parse tree produced by GcodeParser#gcode.
@@ -38,11 +32,11 @@ class GcodeListener(ParseTreeListener):
 
     # Enter a parse tree produced by GcodeParser#statement.
     def enterStatement(self, ctx:GcodeParser.StatementContext):
-        hex_values = []
+       # int_values = []
 
         # G-code inteiro
         gcode_val = ctx.codFunc().INT().getText()
-        hex_values.append(hex(int(gcode_val))[2:].upper())
+        self.line_registers.append((int(gcode_val)))
 
         # Coordenadas: X, Y, I, J
         for coord_ctx in ctx.coord():
@@ -57,11 +51,8 @@ class GcodeListener(ParseTreeListener):
             else:
                 continue
 
-            hex_val = self.float_to_hex(val)
-            hex_values.append(hex_val)
-
-        registers = self.hex_sequence_to_registers(hex_values)
-        self.line_registers.append(registers)
+            int_val = self.float_to_int(val)
+            self.line_registers.append(int_val)
 
     # Exit a parse tree produced by GcodeParser#statement.
     def exitStatement(self, ctx:GcodeParser.StatementContext):
