@@ -5,6 +5,7 @@
 
 #include "trj_program.h"
 #include <math.h>
+#include <stdio.h>
 
 
 // PRIVATE DEFINES
@@ -28,6 +29,7 @@ static tpr_setPoint tpr_program[MAX_PROGRAM_LINES]; // structure to store NC pro
 static uint16_t program_index = 0;
 static tpr_Vector current_position = {X_HOME, Y_HOME}; // current position of the machine
 static int test_index = 0; // index for testing purposes
+static float tempo = 0.0f; // time variable for testing purposes
 
 // PRIVATE FUNCTIONS
 
@@ -75,6 +77,7 @@ int tpr_generateLinearSetPoints(tpr_Command* cmd) {
 			t = T; // last point at time T
 		}
 		point = tpr_interpolatorPolynomial(&current_position, &dir, t, T);
+		printf("%.2f,%.6f,%.6f\n",t+tempo,point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
@@ -85,11 +88,13 @@ int tpr_generateLinearSetPoints(tpr_Command* cmd) {
 		}
 	}
 	current_position = point; // update current position
+	tempo += T; // update time variable for testing
 	return 0; // success 
 } // tpr_storeProgram
 
 int tpr_generateCircularSetPoints(tpr_Command* cmd) {
-	float theta = tpr_computeTheta(&current_position, &(tpr_Vector){cmd->x_e, cmd->y_e}, &(tpr_Vector){cmd->x_c, cmd->y_c}); // angle in radians
+	tpr_Vector center = {current_position.x + cmd->x_c, current_position.y + cmd->y_c}; // center of the arc
+	float theta = tpr_computeTheta(&current_position, &(tpr_Vector){cmd->x_e, cmd->y_e}, &(tpr_Vector){center.x, center.y}); // angle in radians
 	if (cmd->code == G02) {
 		if (theta <= 0) {
 			theta += 2 * M_PI; // ensure positive angle for clockwise direction
@@ -101,17 +106,18 @@ int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 	} else {
 		return -1; // error: invalid G-code
 	}
-	float r = sqrtf(powf(cmd->x_c - current_position.x, 2) + powf(cmd->y_c - current_position.y, 2)); // radius
+	float r = sqrtf(powf(center.x - current_position.x, 2) + powf(center.y - current_position.y, 2)); // radius
 	float T = MAX_CIRC_ACCELERATION_CONSTANT * sqrtf(r*theta*sqrtf(1+theta*theta)/ MAX_ACCELERATION); // time to complete the arc
 	uint16_t num_steps = (uint16_t)(T / TIME_STEP) + 1; // number of steps
-	float phase = atan2f(current_position.y - cmd->y_c, current_position.x - cmd->x_c); // phase angle
+	float phase = atan2f(current_position.y - center.y, current_position.x - center.x); // phase angle
 	tpr_Vector point;
 	for (uint16_t i = 1; i < num_steps; i++) {
 		float t = i * TIME_STEP;
 		if (i == num_steps - 1) {
 			t = T; // last point at time T
 		}
-		point = tpr_interpolatorArcPolynomial(&(tpr_Vector){cmd->x_c, cmd->y_c}, t, T, theta, phase, r);
+		point = tpr_interpolatorArcPolynomial(&(tpr_Vector){center.x, center.y}, t, T, theta, phase, r);
+		printf("%.2f,%.6f,%.6f\n",t+tempo, point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
@@ -122,6 +128,7 @@ int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 		}	
 	}
 	current_position = point; // update current position
+	tempo += T; // update time variable for testing
 	return 0; // success
 } // tpr_generateCircularSetPoints
 

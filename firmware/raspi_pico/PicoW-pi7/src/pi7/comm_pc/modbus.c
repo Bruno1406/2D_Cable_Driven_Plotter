@@ -231,7 +231,7 @@ int checkLRC() {
   retval = false;
   receivedLRC = decode(rxBuffer[idxRxBuffer-3], rxBuffer[idxRxBuffer-2]);
   calculatedLRC = calculateLRC(rxBuffer, 1, idxRxBuffer - 3);
-  printf("LCR rx=%x calc=%x \n", receivedLRC, calculatedLRC);
+  //printf("LCR rx=%x calc=%x\n", receivedLRC, calculatedLRC);
   if ( receivedLRC == calculatedLRC) {
     retval = true;
   }
@@ -328,27 +328,27 @@ void processWriteFile() {
   recordLength = decode(rxBuffer[19], rxBuffer[20]) |
                  (decode(rxBuffer[17], rxBuffer[18]) << 8);
 
-  if(requestDataLength != 9 + recordLength) {
+  if(requestDataLength != 9 + 2*recordLength) {
     // TODO: Error ExceptionCode == 3
-    printf("Error: Invalid request data length\n");
+    printf("Error: Invalid request data length: RDL: %d RL: %d\r\n", requestDataLength, recordLength);
   } else if (!(referenceType == 6 && fileNumber == 0 && recordNumber == 0 && recordLength <= 1000)) {
     // TODO: Error ExceptionCode == 2
-    printf("Error: Invalid reference type or file number\n");
+    printf("Error: Invalid reference type or file number\r\n");
   } else{
-    uint16_t recordData[recordLength];
+    int16_t recordData[recordLength];
     uint8_t offset = 21; // Offset for record data in rxBuffer
     for (uint16_t i = 0; i < recordLength; i ++) {
-      recordData[i] = decode(rxBuffer[offset + 2 + 4*i], rxBuffer[offset + 3 + 4*i]) |
-                      (decode(rxBuffer[offset + 4*i], rxBuffer[offset + 1 + 4*i]) << 8);
+      recordData[i] = (int16_t)(decode(rxBuffer[offset + 2 + 4*i], rxBuffer[offset + 3 + 4*i]) |
+                      (decode(rxBuffer[offset + 4*i], rxBuffer[offset + 1 + 4*i]) << 8));
     }
     // Aciona controller porque a arquitetura MVC
-    int err = 0;//ctl_WriteProgram(recordData, recordLength);
+    int err = ctl_WriteProgram(recordData, recordLength);
     if (!err) {
       memcpy(txBuffer, rxBuffer, sizeof(rxBuffer));
       sendTxBufferToSerialUSB(); 
     } else {
       // TODO: Program error handling
-      printf("Error: Invalid program data\n");
+      printf("Error: Invalid program data\r\n");
     }
   } 
 
@@ -390,8 +390,13 @@ void processMessage() {
     case WRITE_FILE:
       processWriteFile();
       break;
+    default:
+       printf("Error: Invalid function code %x\r\n", functionCode);
+       break;
     } // switch on FunctionCode
-  }
+  } else { 
+    printf("Error: Invalid LRC\r\n");
+  } // if checkLRC
   _state = HUNTING_FOR_START_OF_MESSAGE;
 } // processMessage
 
