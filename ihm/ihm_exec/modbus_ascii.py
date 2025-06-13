@@ -22,7 +22,6 @@ def build_fc21_write_file(unit_id, file_number, record_number, registers):
 
     subreq_header = struct.pack('>BHHH', reference_type, file_number, record_number, record_length)
     data = b''.join(struct.pack('>h', reg) for reg in registers)
-    data = b''.join(struct.pack('>h', reg) for reg in registers)
     payload = to_ascii_hex(struct.pack('>BB', unit_id, function_code) + struct.pack('B', byte_count) + subreq_header + data)
     lrc = to_ascii_hex(compute_lrc(payload))
     ascii_frame = ':' + payload + lrc + '\r\n'
