@@ -1,6 +1,6 @@
 build
 .cache
 .vscode
-
+.venv
 # Ignore MacOS file system related.
 **/*.DS_Store*

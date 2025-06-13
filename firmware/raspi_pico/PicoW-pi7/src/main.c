@@ -49,6 +49,7 @@
 const portTickType DELAY_1SEC = 1000 / portTICK_RATE_MS;
 const portTickType DELAY_500MS = 500 / portTICK_RATE_MS;
 const portTickType DELAY_200MS = 200 / portTICK_RATE_MS;
+const portTickType DELAY_10MS = 10 / portTICK_RATE_MS;
 
 //void __error__(char *pcFilename, unsigned long ulLine) {
 //}
@@ -65,7 +66,7 @@ QueueHandle_t qCommDev; // para testes
 void taskController(void *pvParameters) {
   while(1) {
     
-    printf("1"); // [jo:231005] teste
+   // printf("1"); // [jo:231005] teste
 
     com_executeCommunication(); //internally, it calls Controller to process events
     vTaskDelay(DELAY_200MS); // [jo:230929] TODO: por que não tem vTaskDelay() ? -> não, tem espera na fila
@@ -85,15 +86,15 @@ void taskNCProcessing(void *pvParameters) {
   lastWakeTime = xTaskGetTickCount();
   while(1) {
 
-    printf("2"); // [jo:231005] teste
+    //printf("2"); // [jo:231005] teste
 
     data.command = NO_CMD;
     xQueueReceive(qControlCommands, &data, 0); //do not wait for command
     if (data.command != NO_CMD) {
       tcl_processCommand(data);
     }
-    tcl_generateSetpoint();
-    vTaskDelayUntil(&lastWakeTime, DELAY_200MS);
+    tcl_getSetpoint();
+    vTaskDelayUntil(&lastWakeTime, DELAY_10MS);
   } //task loop
 } // taskNCProcessing
 
@@ -108,7 +109,7 @@ void taskCommPIC(void *pvParameters) {
     //uart_putc_raw(uart0, '3'); // [jo:231004] teste
     UARTSend(0, (uint8_t*)"3", 1); // [jo:231004] teste
     UARTSend(1, (uint8_t*)"3", 1); // [jo:231004] teste
-    printf("3"); // [jo:231005] teste
+  //  printf("3"); // [jo:231005] teste
 
     xQueueReceive(qCommPIC, &setpoints, pdMS_TO_TICKS(250)); // portMAX_DELAY); // [jo:231004] 250 ms no meu teste
     pic_sendToPIC(0, setpoints);
@@ -121,6 +122,7 @@ void taskBlinkLed(void *lpParameters) {
   char ch = NO_CHAR;  // [jo:231005] teste console DEV_MODE
 	while(1) {
 		led_invert();
+  //  printf("Olá, mundo! %d", ch++); // [jo:231005] teste console DEV_MODE
 		vTaskDelay(DELAY_1SEC);  
 	} // task loop
 } //taskBlinkLed

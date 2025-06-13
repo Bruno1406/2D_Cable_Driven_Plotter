@@ -21,27 +21,24 @@
 int tcl_status;
 extern xQueueHandle qCommPIC;
 
-void tcl_generateSetpoint() {
+void tcl_getSetpoint() {
 
-  // // TODO: implementar
+  int currLine;
+  tpr_setPoint line;
+  pic_Data toPic;
 
-  // int currLine;
-  // tpr_setPoint line;
-  // pic_Data toPic;
+  if (tcl_status != STATUS_RUNNING) {
+    return;
+  }
 
-  // if (tcl_status != STATUS_RUNNING) {
-  //   return;
-  // }
-
-  // currLine = tst_getCurrentLine();
-  // printf("CurrLine %d\n", currLine);
-  // line = tpr_getLine(currLine);
-  // toPic.setPoint1 = line.x;
-  // toPic.setPoint2 = line.y;
-  // toPic.setPoint3 = line.z;
-  // xQueueSend(qCommPIC, &toPic, portMAX_DELAY);
-  // currLine++;
-  // tst_setCurrentLine(currLine);
+  currLine = tst_getCurrentLine();
+  printf("CurrLine %d\n", currLine);
+  line = tpr_getLine(currLine);
+  toPic.setPoint1 = line.ticks_left;
+  toPic.setPoint2 = line.ticks_right;
+  xQueueSend(qCommPIC, &toPic, portMAX_DELAY);
+  currLine++;
+  tst_setCurrentLine(currLine);
 } // trj_generateSetpoint
 
 void tcl_processCommand(tcl_Data data) {

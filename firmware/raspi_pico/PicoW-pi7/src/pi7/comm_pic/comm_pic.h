@@ -9,9 +9,8 @@
 #include <stdint.h>
 
 typedef struct {
-	float setPoint1;
-	float setPoint2;
-	float setPoint3;
+	uint16_t setPoint1;
+	uint16_t setPoint2;
 } pic_Data;
 
 void pic_init(void);

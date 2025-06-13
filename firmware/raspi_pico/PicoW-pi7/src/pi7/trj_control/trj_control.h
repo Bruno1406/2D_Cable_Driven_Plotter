@@ -22,6 +22,6 @@ typedef struct {
 
 // external interface
 extern void tcl_processCommand(tcl_Data data);
-extern void tcl_generateSetpoint();
+extern void tcl_getSetpoint();
 extern void tcl_init();
 #endif

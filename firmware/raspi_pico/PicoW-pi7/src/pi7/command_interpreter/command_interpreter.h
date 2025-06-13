@@ -18,7 +18,7 @@
 
 extern int ctl_ReadRegister(int registerToRead);
 extern int ctl_WriteRegister(int registerToWrite, int value);
-extern int ctl_WriteProgram(uint8_t* programBytes, uint16_t programSize);
+extern int ctl_WriteProgram(uint16_t* programBytes, uint16_t programSize);
 extern void ctl_init();
 
 #endif

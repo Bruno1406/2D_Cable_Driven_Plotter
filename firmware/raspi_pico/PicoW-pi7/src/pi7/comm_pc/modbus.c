@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 // PICO W include
 //#include "hardware/uart.h"
@@ -42,7 +43,7 @@
 
 // *** Configuracao da serial (_mode = REAL_MODE)
 //#define BAUD 115200 // 9600
-#define MAX_RX_SIZE 1000
+#define MAX_RX_SIZE 1024
 
 // *** endereco deste node
 #define MY_ADDRESS 0x01
@@ -311,8 +312,45 @@ void processWriteRegister() {
 } // processWriteRegister
 
 void processWriteFile() {
+  byte requestDataLength;
+  byte referenceType;
+  uint16_t fileNumber;
+  uint16_t recordNumber;
+  uint16_t recordLength;
+  byte lrc;
 
-	// TODO: implementar
+  requestDataLength = decode(rxBuffer[5], rxBuffer[6]);
+  referenceType = decode(rxBuffer[7], rxBuffer[8]); 
+  fileNumber = decode(rxBuffer[11], rxBuffer[12]) |
+               (decode(rxBuffer[9], rxBuffer[10]) << 8);
+  recordNumber = decode(rxBuffer[15], rxBuffer[16]) |
+                (decode(rxBuffer[13], rxBuffer[14]) << 8);
+  recordLength = decode(rxBuffer[19], rxBuffer[20]) |
+                 (decode(rxBuffer[17], rxBuffer[18]) << 8);
+
+  if(requestDataLength != 9 + recordLength) {
+    // TODO: Error ExceptionCode == 3
+    printf("Error: Invalid request data length\n");
+  } else if (!(referenceType == 6 && fileNumber == 0 && recordNumber == 0 && recordLength <= 1000)) {
+    // TODO: Error ExceptionCode == 2
+    printf("Error: Invalid reference type or file number\n");
+  } else{
+    uint16_t recordData[recordLength];
+    uint8_t offset = 21; // Offset for record data in rxBuffer
+    for (uint16_t i = 0; i < recordLength; i ++) {
+      recordData[i] = decode(rxBuffer[offset + 2 + 4*i], rxBuffer[offset + 3 + 4*i]) |
+                      (decode(rxBuffer[offset + 4*i], rxBuffer[offset + 1 + 4*i]) << 8);
+    }
+    // Aciona controller porque a arquitetura MVC
+    int err = 0;//ctl_WriteProgram(recordData, recordLength);
+    if (!err) {
+      memcpy(txBuffer, rxBuffer, sizeof(rxBuffer));
+      sendTxBufferToSerialUSB(); 
+    } else {
+      // TODO: Program error handling
+      printf("Error: Invalid program data\n");
+    }
+  } 
 
 } // processWriteProgram
 
@@ -380,14 +418,14 @@ void receiveMessage() {
    if ((ch = getchar_timeout_us(0)) /* != PICO_ERROR_TIMEOUT && ch */ != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
   // if (ch != NO_CHAR) { // [jo:231005] original
 
-    printf(" [%x] ", ch); // [jo:231004] teste
+   // printf(" [%x] ", ch); // [jo:231004] teste
 
     if (_state == HUNTING_FOR_START_OF_MESSAGE) {
       if (ch == ':') {
         idxRxBuffer = 0;
         rxBuffer[idxRxBuffer] = ch;
         _state = HUNTING_FOR_END_OF_MESSAGE;
-        putchar_raw(ch); // [jo:231006] teste
+        //putchar_raw(ch); // [jo:231006] teste
         return;
       }
     } else if (_state == HUNTING_FOR_END_OF_MESSAGE) {
@@ -398,7 +436,7 @@ void receiveMessage() {
         return;
       }
       rxBuffer[idxRxBuffer] = ch;
-      putchar_raw(ch); // [jo:231006] teste
+      //putchar_raw(ch); // [jo:231006] teste
       if ((rxBuffer[idxRxBuffer] == 0x0A) &&
         (rxBuffer[idxRxBuffer - 1] == 0x0D)) {
         _state = MESSAGE_READY;

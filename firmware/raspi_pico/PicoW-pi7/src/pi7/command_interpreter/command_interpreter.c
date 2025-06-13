@@ -96,25 +96,50 @@ int ctl_WriteRegister(int registerToWrite, int value) {
  Retorno:
     TRUE se escrita foi aceita, FALSE caso contrario.
 *************************************************************************/
-int ctl_WriteProgram(uint8_t* programBytes, uint16_t programSize) {
-   if (programSize % sizeof(tpr_Command) != 0) {
-      return INVALID_PROGRAM_ERR;
-   }
-
-   size_t num_commands = programSize/sizeof(tpr_Command);
+int ctl_WriteProgram(uint16_t* programRegisterData, uint16_t programSize) {
    tpr_Command cmd;
    int err = 0;
-  for (uint16_t i = 0; i <  num_commands; i++) {
-      memcpy(&cmd, &programBytes[i * sizeof(tpr_Command)], sizeof(tpr_Command));
-      if (cmd.code == G00 || cmd.code == G01) {
+   int i = 0;
+   while (i < programSize) {
+      if (programRegisterData[i] == G00 || programRegisterData[i] == G01) {
+         // G00 or G01 command
+         if (i + 2 >= programSize) {
+            printf("Invalid program data length for G00/G01\n");
+            err = INVALID_PROGRAM_ERR;
+            return err; 
+         }
+         cmd.code = programRegisterData[i];
+         cmd.x_e = (float)programRegisterData[i + 1] / 10.0f; // convert to mm
+         cmd.y_e = (float)programRegisterData[i + 2] / 10.0f; // convert to mm
          err = tpr_generateLinearSetPoints(&cmd);
-      }
-      else if (cmd.code == G02 || cmd.code == G03) {
+         if (err) {
+            printf("Error generating linear set points\n");
+            return err; // return error if generation fails
+         }
+         i += 3; // advance to next command   
+      } else if (programRegisterData[i] == G02 || programRegisterData[i] == G03) {
+         // G02 or G03 command
+         if (i + 4 >= programSize) {
+            printf("Invalid program data length for G02/G03\n");
+            err = INVALID_PROGRAM_ERR;
+            return err; 
+         }
+         cmd.code = programRegisterData[i];
+         cmd.x_e = (float)programRegisterData[i + 1] / 10.0f; // convert to mm
+         cmd.y_e = (float)programRegisterData[i + 2] / 10.0f; // convert to mm
+         cmd.x_c = (float)programRegisterData[i + 3] / 10.0f; // convert to mm
+         cmd.y_c = (float)programRegisterData[i + 4] / 10.0f; // convert to mm
          err = tpr_generateCircularSetPoints(&cmd);
+         if (err) {
+            printf("Error generating circular set points\n");
+            return err; // return error if generation fails
+         }
+         i += 5; // advance to next command   
       } else {
-         printf("Invalid command code: %d\n", cmd.code);
-         return INVALID_PROGRAM_ERR; // Invalid command code
+         printf("Invalid program data\n");
+         err = INVALID_PROGRAM_ERR;
+         return err; // return error if command is invalid
       }
    }
-   return true; // TRUE;
+   return err; // return 0 if no error
 } // ctl_WriteRegister
