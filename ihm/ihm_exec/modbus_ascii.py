@@ -21,7 +21,7 @@ def build_fc21_write_file(unit_id, file_number, record_number, registers):
     byte_count = 9 + 2 * record_length
 
     subreq_header = struct.pack('>BHHH', reference_type, file_number, record_number, record_length)
-    data = b''.join(struct.pack('>H', reg) for reg in registers)
+    data = b''.join(struct.pack('>h', reg) for reg in registers)
     payload = to_ascii_hex(struct.pack('>BB', unit_id, function_code) + struct.pack('B', byte_count) + subreq_header + data)
     lrc = to_ascii_hex(compute_lrc(payload))
     ascii_frame = ':' + payload + lrc + '\r\n'
@@ -48,9 +48,9 @@ def build_fc3_read_registers(unit_id, start_address, quantity=1): #Nesse codigo 
 
 def send_ascii_packet(port_name, packet):
     """Envia pacote ASCII pela serial e retorna resposta."""
-    with serial.Serial(port=port_name, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=10) as ser:
+    with serial.Serial(port=port_name, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=20) as ser:
         ser.write(packet)
-        response = ser.read_until(b'\r\n')
+        response = ser.read(32768)  # Lê até encontrar o final do pacote
         return response.decode('ascii').strip()
     
 
@@ -59,10 +59,10 @@ if __name__ == "__main__":
     unit_id = 1
     file_number = 0
     record_number = 0
-    registers = [0x1, 0xC143, 0xFFFF]
+    registers = [0, 2300, 4000, 2, 2300, 4000, -800, 0]
     print(len(registers))
     packet = build_fc21_write_file(unit_id, file_number, record_number, registers)
     print(f'PACOTE TESTE: {packet}') 
     response = send_ascii_packet('/dev/ttyACM0', packet)  # Ajuste o nome da porta conforme necessário
-    print(f"Resposta: {response}")
+    print(f"Resposta:\n {response}")
     
