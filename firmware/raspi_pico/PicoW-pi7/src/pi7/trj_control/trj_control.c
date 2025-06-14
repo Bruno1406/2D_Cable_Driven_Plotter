@@ -32,7 +32,7 @@ void tcl_getSetpoint() {
   }
 
   currLine = tst_getCurrentLine();
-  printf("CurrLine %d\n", currLine);
+  //printf("CurrLine %d\n", currLine);
   line = tpr_getLine(currLine);
   toPic.setPoint1 = line.ticks_left;
   toPic.setPoint2 = line.ticks_right;

@@ -77,8 +77,9 @@ int tpr_generateLinearSetPoints(tpr_Command* cmd) {
 			t = T; // last point at time T
 		}
 		point = tpr_interpolatorPolynomial(&current_position, &dir, t, T);
-		printf("%.2f,%.6f,%.6f\n",t+tempo,point.x, point.y); // debug output
+		//printf("%.2f,%.6f,%.6f\n",t+tempo,point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
+		printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right); // debug output
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
 //			tpr_trajectory[program_index] = point; // store trajectory point for logging
@@ -117,8 +118,9 @@ int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 			t = T; // last point at time T
 		}
 		point = tpr_interpolatorArcPolynomial(&(tpr_Vector){center.x, center.y}, t, T, theta, phase, r);
-		printf("%.2f,%.6f,%.6f\n",t+tempo, point.x, point.y); // debug output
+		//printf("%.2f,%.6f,%.6f\n",t+tempo, point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
+		printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right);
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
 //			tpr_trajectory[program_index] = point; // store trajectory point for logging

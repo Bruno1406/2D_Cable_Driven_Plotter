@@ -11,7 +11,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 unit_id = 1 #ID setado no slave, pode ser qualquer valor
 file_number = 0
 start_record = 0
-#port_name = "/dev/ttyUSB0" # Linux/Mac: algo como /dev/ttyUSB0 | Windows: COM3, COM4 etc.
+port_name = "/dev/ttyACM0"
+
+  # Linux/Mac: algo como /dev/ttyUSB0 | Windows: COM3, COM4 etc.
 
 gcode_registers = []
 
@@ -45,14 +47,14 @@ def abrir_arquivo():
 
 def send():
         packet = modbus.build_fc21_write_file(unit_id, file_number, start_record, gcode_registers)
-        #response = modbus.send_ascii_packet(port_name, packet)
-        print(f"Linha: {packet}")
+        response = modbus.send_ascii_packet(port_name, packet)
+        print(f"Linha: {response}")
 
 def start():
     global rodando, pausado
     rodando = True
     pausado = False
-    packet = modbus.build_fc6_write_single(unit_id, 1, 1) #Considerei que caso valor 1 
+    packet = modbus.build_fc6_write_single(unit_id, 0, 1) #Considerei que caso valor 1 
     response = modbus.send_ascii_packet(port_name, packet)
     print(f"Start: {response}")
 

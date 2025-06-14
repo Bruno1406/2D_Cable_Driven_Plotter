@@ -69,7 +69,7 @@ void taskController(void *pvParameters) {
    // printf("1"); // [jo:231005] teste
 
     com_executeCommunication(); //internally, it calls Controller to process events
-    vTaskDelay(DELAY_200MS); // [jo:230929] TODO: por que não tem vTaskDelay() ? -> não, tem espera na fila
+    vTaskDelay(DELAY_10MS); // [jo:230929] TODO: por que não tem vTaskDelay() ? -> não, tem espera na fila
   } //task loop
 } // taskController
 
@@ -193,11 +193,11 @@ int main(void) {
 	 * Start the tasks defined within this file/specific to this demo. 
 	 */
 	xTaskCreate( taskBlinkLed, "BlinkLed", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, &handleLed);
-	xTaskCreate( taskController, "Controller", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
-	xTaskCreate( taskNCProcessing, "NCProcessing", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
-	xTaskCreate( taskCommPIC, "CommPIC", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
+	xTaskCreate( taskController, "Controller", USERTASK_STACK_SIZE, NULL, 1, NULL );
+	xTaskCreate( taskNCProcessing, "NCProcessing", USERTASK_STACK_SIZE, NULL, 1, NULL );
+	//xTaskCreate( taskCommPIC, "CommPIC", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );
 
-  vTaskCoreAffinitySet(handleLed, (1 << 0)); // executa BlinkLed num único core
+  //vTaskCoreAffinitySet(handleLed, (1 << 0)); // executa BlinkLed num único core
 
 	//*************** DEBUG FOR ReadRegister
 	// insert ReadRegister msg on qCommDev for debug
