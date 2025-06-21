@@ -129,7 +129,6 @@ int ctl_WriteProgram(int16_t* programRegisterData, uint16_t programSize) {
          cmd.y_e = (float)programRegisterData[i + 2] / 10.0f; // convert to mm
          cmd.x_c = (float)programRegisterData[i + 3] / 10.0f; // convert to mm
          cmd.y_c = (float)programRegisterData[i + 4] / 10.0f; // convert to mm
-         //printf("Command: code=%d x_e=%.2f, y_e=%.2f, x_c=%.2f, y_c=%.2f\r\n", cmd.code, cmd.x_e, cmd.y_e, cmd.x_c, cmd.y_c);
          err = tpr_generateCircularSetPoints(&cmd);
          if (err) {
             printf("Error generating circular set points\r\n");

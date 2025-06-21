@@ -418,12 +418,11 @@ void processMessage() {
 *************************************************************************/
 void receiveMessage() {
   char ch = MB_NO_CHAR;
+  ch = getchar_timeout_us(0);
 
-  //ch = getCharFromSerial(); // [jo:231005] original
-   if ((ch = getchar_timeout_us(0)) /* != PICO_ERROR_TIMEOUT && ch */ != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
-  // if (ch != NO_CHAR) { // [jo:231005] original
+   if (ch != 0xfe && ch != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
 
-   // printf(" [%x] ", ch); // [jo:231004] teste
+    printf("[%c]", ch); // [jo:231004] teste
 
     if (_state == HUNTING_FOR_START_OF_MESSAGE) {
       if (ch == ':') {

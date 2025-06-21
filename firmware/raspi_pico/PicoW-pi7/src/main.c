@@ -122,7 +122,8 @@ void taskBlinkLed(void *lpParameters) {
   char ch = NO_CHAR;  // [jo:231005] teste console DEV_MODE
 	while(1) {
 		led_invert();
-  //  printf("Olá, mundo! %d", ch++); // [jo:231005] teste console DEV_MODE
+    ch = getchar_timeout_us(0);
+    printf("BlinkLed: %x\n", ch); // [jo:231005] teste console DEV_MODE
 		vTaskDelay(DELAY_1SEC);  
 	} // task loop
 } //taskBlinkLed
@@ -192,7 +193,7 @@ int main(void) {
 	/* 
 	 * Start the tasks defined within this file/specific to this demo. 
 	 */
-	xTaskCreate( taskBlinkLed, "BlinkLed", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, &handleLed);
+	//xTaskCreate( taskBlinkLed, "BlinkLed", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, &handleLed);
 	xTaskCreate( taskController, "Controller", USERTASK_STACK_SIZE, NULL, 1, NULL );
 	xTaskCreate( taskNCProcessing, "NCProcessing", USERTASK_STACK_SIZE, NULL, 1, NULL );
 	//xTaskCreate( taskCommPIC, "CommPIC", USERTASK_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL );

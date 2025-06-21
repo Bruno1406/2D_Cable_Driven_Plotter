@@ -36,7 +36,8 @@ void tcl_getSetpoint() {
   line = tpr_getLine(currLine);
   toPic.setPoint1 = line.ticks_left;
   toPic.setPoint2 = line.ticks_right;
-  xQueueSend(qCommPIC, &toPic, portMAX_DELAY);
+  printf("Setpoint: %d %d\n", toPic.setPoint1, toPic.setPoint2);
+  xQueueSend(qCommPIC, &toPic, 0);
   currLine++;
   tst_setCurrentLine(currLine);
 } // trj_generateSetpoint

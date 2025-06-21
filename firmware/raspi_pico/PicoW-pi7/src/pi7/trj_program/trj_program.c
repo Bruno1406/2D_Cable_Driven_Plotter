@@ -91,7 +91,7 @@ int tpr_generateLinearSetPoints(tpr_Command* cmd) {
 	current_position = point; // update current position
 	tempo += T; // update time variable for testing
 	return 0; // success 
-} // tpr_storeProgram
+} // tpr_generateLinearSetPoints
 
 int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 	tpr_Vector center = {current_position.x + cmd->x_c, current_position.y + cmd->y_c}; // center of the arc
