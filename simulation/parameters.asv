@@ -1,7 +1,0 @@
-% Define motor parameters
-
-K_t = 0.0165;
-L_a = 0.0023;
-R_a = 2.4;
-J_m = 1;
-B_m = 0.0001;
