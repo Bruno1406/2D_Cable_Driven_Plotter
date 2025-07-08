@@ -1,0 +1,36 @@
+clc; clear;
+
+% Dados fornecidos
+K = 23.26;
+zeta = 5.39;
+wn = 64.34;
+Ra = 13.4;
+J = 0.002143;
+
+% Coeficientes da função padrão de 2ª ordem
+num_std = K * wn^2;
+a1_std = 2 * zeta * wn;
+a0_std = wn^2;
+
+% Função de erro
+fun = @(x) [
+    x(2) / (J * x(1)) - num_std;
+    (x(3)/J + Ra/x(1)) - a1_std;
+    (Ra*x(3) + x(2)^2) / (J * x(1)) - a0_std
+];
+
+% Chute inicial para [La, Kt, b]
+x0 = [0.009, 0.1, 0.001];
+
+% Resolver com fsolve
+options = optimoptions('fsolve','Display','off');
+x = fsolve(fun, x0, options);
+
+La = x(1);
+Kt = x(2);
+b = x(3);
+
+% Exibir resultados
+fprintf('La = %.6f H\n', La);
+fprintf('Kt = %.6f Nm/A\n', Kt);
+fprintf('b  = %.6f Nms/rad\n', b);

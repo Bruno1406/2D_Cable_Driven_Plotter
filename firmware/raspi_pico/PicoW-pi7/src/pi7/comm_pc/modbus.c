@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 // PICO W include
 //#include "hardware/uart.h"
@@ -42,7 +43,7 @@
 
 // *** Configuracao da serial (_mode = REAL_MODE)
 //#define BAUD 115200 // 9600
-#define MAX_RX_SIZE 1000
+#define MAX_RX_SIZE 1024
 
 // *** endereco deste node
 #define MY_ADDRESS 0x01
@@ -230,7 +231,7 @@ int checkLRC() {
   retval = false;
   receivedLRC = decode(rxBuffer[idxRxBuffer-3], rxBuffer[idxRxBuffer-2]);
   calculatedLRC = calculateLRC(rxBuffer, 1, idxRxBuffer - 3);
-  printf("LCR rx=%x calc=%x \n", receivedLRC, calculatedLRC);
+  //printf("LCR rx=%x calc=%x\n", receivedLRC, calculatedLRC);
   if ( receivedLRC == calculatedLRC) {
     retval = true;
   }
@@ -264,14 +265,16 @@ void processReadRegister() {
   txBuffer[4] = encodeLow(READ_REGISTER);
   txBuffer[5] = encodeHigh(1); // byte count field  (high part)
   txBuffer[6] = encodeLow(1);  // byte count field (low part)
-  txBuffer[7] = encodeHigh(registerValue);
-  txBuffer[8] = encodeLow(registerValue);
-  lrc = calculateLRC(txBuffer, 1, 8);
-  txBuffer[9] = encodeHigh(lrc);
-  txBuffer[10] = encodeLow(lrc);
-  txBuffer[11] = 0x0d;
-  txBuffer[12] = 0x0a;
-  txBuffer[13] = 0; // null to end as string
+  txBuffer[7] = encodeHigh(registerValue >> 8);
+  txBuffer[8] = encodeLow(registerValue >> 8);
+  txBuffer[9] = encodeHigh(registerValue & 0xff);
+  txBuffer[10] = encodeLow(registerValue & 0xff);
+  lrc = calculateLRC(txBuffer, 1, 10);
+  txBuffer[11] = encodeHigh(lrc);
+  txBuffer[12] = encodeLow(lrc);
+  txBuffer[13] = 0x0d;
+  txBuffer[14] = 0x0a;
+  txBuffer[15] = 0; // null to end as string
   //putCharToSerial(); // [jo:231005] original
   sendTxBufferToSerialUSB(); // [jo:231005] atualizado para 2024
 } // processReadRegister
@@ -311,8 +314,46 @@ void processWriteRegister() {
 } // processWriteRegister
 
 void processWriteFile() {
+  // printf("processWriteFile called\r\n");
+  byte requestDataLength;
+  byte referenceType;
+  uint16_t fileNumber;
+  uint16_t recordNumber;
+  uint16_t recordLength;
+  byte lrc;
 
-	// TODO: implementar
+  requestDataLength = decode(rxBuffer[5], rxBuffer[6]);
+  referenceType = decode(rxBuffer[7], rxBuffer[8]); 
+  fileNumber = decode(rxBuffer[11], rxBuffer[12]) |
+               (decode(rxBuffer[9], rxBuffer[10]) << 8);
+  recordNumber = decode(rxBuffer[15], rxBuffer[16]) |
+                (decode(rxBuffer[13], rxBuffer[14]) << 8);
+  recordLength = decode(rxBuffer[19], rxBuffer[20]) |
+                 (decode(rxBuffer[17], rxBuffer[18]) << 8);
+
+  if(requestDataLength != 9 + 2*recordLength) {
+    // TODO: Error ExceptionCode == 3
+    printf("Error: Invalid request data length: RDL: %d RL: %d\r\n", requestDataLength, recordLength);
+  } else if (!(referenceType == 6 && fileNumber == 0 && recordNumber == 0 && recordLength <= 1000)) {
+    // TODO: Error ExceptionCode == 2
+    printf("Error: Invalid reference type or file number\r\n");
+  } else{
+    int16_t recordData[recordLength];
+    uint8_t offset = 21; // Offset for record data in rxBuffer
+    for (uint16_t i = 0; i < recordLength; i ++) {
+      recordData[i] = (int16_t)(decode(rxBuffer[offset + 2 + 4*i], rxBuffer[offset + 3 + 4*i]) |
+                      (decode(rxBuffer[offset + 4*i], rxBuffer[offset + 1 + 4*i]) << 8));
+    }
+    // Aciona controller porque a arquitetura MVC
+    int err = ctl_WriteProgram(recordData, recordLength);
+    if (!err) {
+      memcpy(txBuffer, rxBuffer, sizeof(rxBuffer));
+      sendTxBufferToSerialUSB(); 
+    } else {
+      // TODO: Program error handling
+      printf("Error: Invalid program data\r\n");
+    }
+  } 
 
 } // processWriteProgram
 
@@ -352,8 +393,13 @@ void processMessage() {
     case WRITE_FILE:
       processWriteFile();
       break;
+    default:
+       printf("Error: Invalid function code %x\r\n", functionCode);
+       break;
     } // switch on FunctionCode
-  }
+  } else { 
+    printf("Error: Invalid LRC\r\n");
+  } // if checkLRC
   _state = HUNTING_FOR_START_OF_MESSAGE;
 } // processMessage
 
@@ -375,19 +421,18 @@ void processMessage() {
 *************************************************************************/
 void receiveMessage() {
   char ch = MB_NO_CHAR;
+  ch = getchar_timeout_us(0);
 
-  //ch = getCharFromSerial(); // [jo:231005] original
-   if ((ch = getchar_timeout_us(0)) /* != PICO_ERROR_TIMEOUT && ch */ != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
-  // if (ch != NO_CHAR) { // [jo:231005] original
+   if (ch != 0xfe && ch != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
 
-    printf(" [%x] ", ch); // [jo:231004] teste
+    //printf("[%c]", ch); // [jo:231004] teste
 
     if (_state == HUNTING_FOR_START_OF_MESSAGE) {
       if (ch == ':') {
         idxRxBuffer = 0;
         rxBuffer[idxRxBuffer] = ch;
         _state = HUNTING_FOR_END_OF_MESSAGE;
-        putchar_raw(ch); // [jo:231006] teste
+        //putchar_raw(ch); // [jo:231006] teste
         return;
       }
     } else if (_state == HUNTING_FOR_END_OF_MESSAGE) {
@@ -398,7 +443,7 @@ void receiveMessage() {
         return;
       }
       rxBuffer[idxRxBuffer] = ch;
-      putchar_raw(ch); // [jo:231006] teste
+      //putchar_raw(ch); // [jo:231006] teste
       if ((rxBuffer[idxRxBuffer] == 0x0A) &&
         (rxBuffer[idxRxBuffer - 1] == 0x0D)) {
         _state = MESSAGE_READY;

@@ -4,21 +4,15 @@
  * [jo:230927] usa UART0 e UART1 para comunicação
  */
 
-/*
- * FreeRTOS includes
- */
-//#include "FreeRTOS.h"
-//#include "queue.h"
+
 #include <stdbool.h>
 #include <stdio.h>
-
-// Drivers for UART, LED and Console(debug)
-//#include <cr_section_macros.h>
-//#include <NXP/crp.h>
-//#include "LPC17xx.h"
-//#include "type.h"
 #include "drivers/uart/uart.h"
-//#include "hardware/uart.h"
+
+// FreeRTOS includes
+#include "FreeRTOS.h"
+#include "projdefs.h"
+#include "task.h"
 
 // Header files for PI7
 #include "comm_pic.h"
@@ -29,20 +23,37 @@ void pic_init(void){
   
 } // pic_init
 
-void pic_sendToPIC(uint8_t portNum, pic_Data data) {
-  uint8_t out[32];
+void pic_sendToPIC(pic_TxData data) {
+  uint8_t out1[4];
+  uint8_t out0[4];
+  out0[0] = ':';
+  out0[1] = data.command; // comando
+  out0[2] = data.setPointLeft & 0xFF; // setPoint LSB
+  out0[3] = (data.setPointLeft >> 8); // setPoint MSB
 
-  // Implementação de teste, envia setpoint para console e para UARTs
-	//printf("X=%5.1f Y=%5.1f Z=%5.1f\n", data.setPoint1, data.setPoint2, data.setPoint3);
-  sprintf((char*)out, "X=%5.1f Y=%5.1f Z=%5.1f\n", data.setPoint1, data.setPoint2, data.setPoint3);
-  //puts((char*)out); // envia para console
-  UARTSendNullTerminated(portNum, out);  // envia também para UART 0 ou 1
-  //UARTSend(portNum, out, 23); // [jo:231004] alternativa linha acima sem NULL no final
+  out1[0] = ':';
+  out1[1] = data.command; // comando
+  out1[2] = data.setPointRight & 0xFF; // setPoint LSB
+  out1[3] = (data.setPointRight >> 8); // setPoint
+
+  for(uint8_t i = 0; i < 4; i++) {
+    UARTSend(0, out0+i,1); // send to UART0
+    UARTSend(1, out1+i,1); // send to UART1
+    vTaskDelay(5); // wait 1 ms between sends
+  }
+
 
   // TODO: implementar
 
 } // pic_sendToPIC
 
-extern uint8_t pic_receiveCharFromPIC(uint8_t portNum) {
-  return UARTGetChar(portNum, false);
+char pic_receiveCharFromPIC(uint8_t portNum) {
+
+  uint16_t ch = UARTGetChar(portNum, false); // get character from UART
+  return ch; // return the character received
 } // pic_receiveFromPIC
+
+void pic_receiveBufferFromPIC(uint8_t portNum, rx_buffer_t *rxBuffer) {
+  // Receives a buffer of characters from the specified UART port
+  UARTGetBuffer(portNum, rxBuffer);
+} // pic_receiveBufferFromPIC

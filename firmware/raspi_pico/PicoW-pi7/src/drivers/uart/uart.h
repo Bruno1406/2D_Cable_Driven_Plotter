@@ -29,14 +29,20 @@
 // #define LSR_RXFE	0x80
 
 #define BUFSIZE		0x40
-#define NO_CHAR   0xff
+#define NO_CHAR   0xffff
+
+typedef struct {
+    char* buffer; // pointer to the buffer
+    uint32_t size; // size of the buffer
+} rx_buffer_t;
 
 uint8_t UARTInit( uint8_t portNum, uint32_t Baudrate );
 void UART0_IRQHandler( void );
 void UART1_IRQHandler( void );
 void UARTSend( uint8_t portNum, uint8_t *BufferPtr, uint32_t Length );
 void UARTSendNullTerminated( uint8_t portNum, uint8_t *BufferPtr);
-uint8_t UARTGetChar( uint8_t portNum, uint8_t blocking );
+uint16_t UARTGetChar( uint8_t portNum, uint32_t blocking );
+void UARTGetBuffer( uint8_t portNum, rx_buffer_t *rxBuffer);
 bool UARTIsEnabled(uint8_t portNum);
 
 #endif /* end __UART_H */

@@ -6,14 +6,16 @@
  */
 
 #define NO_CMD      0
-#define CMD_START   1
-#define CMD_SUSPEND 2
-#define CMD_RESUME  3
-#define CMD_STOP    4
+#define CMD_START   0x31
+#define CMD_STOP    0x30
+#define CMD_CALIBRATE 0x32
+#define CMD_PARK    0x33
+
 
 // Possible status for TrajectoryController
 #define STATUS_RUNNING   0
 #define STATUS_NOT_RUNNING 2
+#define STATUS_CALIBRATING 3
 
 // struct for communication between TrajectoryController and Controller
 typedef struct {
@@ -22,6 +24,6 @@ typedef struct {
 
 // external interface
 extern void tcl_processCommand(tcl_Data data);
-extern void tcl_generateSetpoint();
+extern void tcl_getSetpoint();
 extern void tcl_init();
 #endif
