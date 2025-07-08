@@ -51,11 +51,14 @@ def build_fc3_read_registers(unit_id, start_address, quantity=1):
 
 def send_ascii_packet(port_name, packet):
     """Envia pacote ASCII pela serial e retorna resposta."""
-    with serial.Serial(port=port_name, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=20) as ser:
+    with serial.Serial(port=port_name, baudrate=115200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=2) as ser:
+        ser.reset_input_buffer()
         ser.write(packet)
-        response = ser.read_until(b'/r/n')  # Lê até encontrar o final do pacote
+        response = ser.read_until(b'\r\n')  # Corrigido o terminador
         print(f"Resposta recebida: {response.decode('ascii').strip()}")
         return response.decode('ascii').strip()
+
+
 
 if __name__ == "__main__":
     # TESTES
@@ -66,8 +69,8 @@ if __name__ == "__main__":
     print(len(registers))
     packet = build_fc21_write_file(unit_id, file_number, record_number, registers)
     print(f'PACOTE TESTE: {packet}') 
-    #response = send_ascii_packet('/dev/ttyACM0', packet)  # Ajuste o nome da porta conforme necessário
-    #print(f"Resposta:\n {response}")
+   # response = send_ascii_packet('/dev/ttyACM0', packet)  # Ajuste o nome da porta conforme necessário
+   # print(f"Resposta:\n {response}")
     start_message = build_fc6_write_single(unit_id, 0, 1)
     print(f'Start message: {start_message}')
     #response = send_ascii_packet('/dev/ttyACM0', start_message)  # Ajuste o nome da porta conforme necessário

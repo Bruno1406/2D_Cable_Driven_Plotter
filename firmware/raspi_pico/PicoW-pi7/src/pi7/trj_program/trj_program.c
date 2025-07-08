@@ -4,6 +4,7 @@
  */
 
 #include "trj_program.h"
+#include "../trj_state/trj_state.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -14,13 +15,12 @@
 #define MAX_ACCELERATION 300 // max acceleration in mm/s^2
 #define MAX_LIN_ACCELERATION_CONSTANT 5.7735 // 120*((1+1/sqrt(3))/2)^3 - 180*((1+1/sqrt(3))/2)^2 - 60*(1+1/sqrt(3))/2 -> Obtained analytically 
 #define MAX_CIRC_ACCELERATION_CONSTANT 1.8542 // Obtained from curve fitting of the model T = a * sqrtf(r*theta*sqrtf(1+theta*theta)/ MAX_ACCELERATION)
-#define TIME_STEP 0.01f // time step in seconds for interpolation
-#define TICKS_PER_MM 67.4068f // number of ticks per mm for the motors
+#define TIME_STEP 0.03f // time step in seconds for interpolation
+#define TICKS_PER_MM 17.97515f // number of ticks per mm for the motors
+ // number of ticks per mm for the motors
 #define MOTOR_DISTANCE 300 // distance between motors in mm
 #define X_HOME 150 // home position X in mm
-#define Y_HOME 400 // home position Y in mm
-
-
+#define Y_HOME 250 // home position Y in mm
 
 // Private Variables
 
@@ -66,20 +66,23 @@ tpr_Vector tpr_interpolatorArcPolynomial(tpr_Vector* center, float t, float T, f
 // PUBLIC FUNCTIONS
 
 int tpr_generateLinearSetPoints(tpr_Command* cmd) {
+	// printf("Generating linear set points for command: G%02d, x_e: %.2f, y_e: %.2f\n", cmd->code, cmd->x_e, cmd->y_e);
     float L = sqrtf(powf(cmd->x_e - current_position.x, 2) + powf(cmd->y_e - current_position.y, 2));
 	tpr_Vector dir = {cmd->x_e - current_position.x, cmd->y_e - current_position.y};
 	float T = sqrtf(MAX_LIN_ACCELERATION_CONSTANT * L / MAX_ACCELERATION);
 	uint16_t num_steps = (uint16_t)(T / TIME_STEP) + 1;
 	tpr_Vector point;
+	// printf("L: %.2f, T: %.2f, num_steps: %d\n", L, T, num_steps); // debug output
 	for (uint16_t i = 1; i < num_steps; i++) {
+		// printf("Step %d of %d, time: %.2f, T: %.2f\n", i, num_steps, i * TIME_STEP, T); // debug output
 		float t = i * TIME_STEP;
 		if (i == num_steps - 1) {
 			t = T; // last point at time T
 		}
 		point = tpr_interpolatorPolynomial(&current_position, &dir, t, T);
-		//printf("%.2f,%.6f,%.6f\n",t+tempo,point.x, point.y); // debug output
+		// printf("%.2f,%.6f,%.6f\n",t+tempo,point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
-		printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right); // debug output
+		// printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right); // debug output
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
 //			tpr_trajectory[program_index] = point; // store trajectory point for logging
@@ -90,10 +93,12 @@ int tpr_generateLinearSetPoints(tpr_Command* cmd) {
 	}
 	current_position = point; // update current position
 	tempo += T; // update time variable for testing
+	tst_setLastLine(program_index); // update last line for state tracking
 	return 0; // success 
 } // tpr_generateLinearSetPoints
 
 int tpr_generateCircularSetPoints(tpr_Command* cmd) {
+	// printf("Generating circular set points for command: G%02d, x_e: %.2f, y_e: %.2f, x_c: %.2f, y_c: %.2f\n", cmd->code, cmd->x_e, cmd->y_e, cmd->x_c, cmd->y_c);
 	tpr_Vector center = {current_position.x + cmd->x_c, current_position.y + cmd->y_c}; // center of the arc
 	float theta = tpr_computeTheta(&current_position, &(tpr_Vector){cmd->x_e, cmd->y_e}, &(tpr_Vector){center.x, center.y}); // angle in radians
 	if (cmd->code == G02) {
@@ -112,15 +117,17 @@ int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 	uint16_t num_steps = (uint16_t)(T / TIME_STEP) + 1; // number of steps
 	float phase = atan2f(current_position.y - center.y, current_position.x - center.x); // phase angle
 	tpr_Vector point;
+	// printf("r: %.2f, theta: %.2f, T: %.2f, num_steps: %d\n", r, theta, T, num_steps); // debug output
 	for (uint16_t i = 1; i < num_steps; i++) {
+		// printf("Step %d of %d, time: %.2f, T: %.2f\n", i, num_steps, i * TIME_STEP, T); // debug output
 		float t = i * TIME_STEP;
 		if (i == num_steps - 1) {
 			t = T; // last point at time T
 		}
 		point = tpr_interpolatorArcPolynomial(&(tpr_Vector){center.x, center.y}, t, T, theta, phase, r);
-		//printf("%.2f,%.6f,%.6f\n",t+tempo, point.x, point.y); // debug output
+		// printf("%.2f,%.6f,%.6f\n",t+tempo, point.x, point.y); // debug output
 		tpr_setPoint setPoint = tpr_vector2SetPoint(&point);
-		printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right);
+		// printf("%.2f,%d,%d\n", t + tempo, setPoint.ticks_left, setPoint.ticks_right);
 		if (program_index < MAX_PROGRAM_LINES) {
 			tpr_program[program_index] = setPoint;
 //			tpr_trajectory[program_index] = point; // store trajectory point for logging
@@ -131,6 +138,7 @@ int tpr_generateCircularSetPoints(tpr_Command* cmd) {
 	}
 	current_position = point; // update current position
 	tempo += T; // update time variable for testing
+	tst_setLastLine(program_index); // update last line for state tracking
 	return 0; // success
 } // tpr_generateCircularSetPoints
 
@@ -141,9 +149,10 @@ tpr_setPoint tpr_getLine(int line) {
 void tpr_init() {
   int i;
 
+  program_index = 0; // start from the second line
   for (i=0; i<MAX_PROGRAM_LINES;i++) {
-	  tpr_program[i].ticks_left = 0;
-	  tpr_program[i].ticks_right = 0;
+	    tpr_program[i].ticks_left = tpr_vector2SetPoint(&(tpr_Vector){X_HOME, Y_HOME}).ticks_left;
+  		tpr_program[i].ticks_right = tpr_vector2SetPoint(&(tpr_Vector){X_HOME, Y_HOME}).ticks_right;
 
   }
 } //tpr_init

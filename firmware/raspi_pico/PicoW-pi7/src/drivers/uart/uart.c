@@ -360,7 +360,7 @@ void UART1_IRQHandler(void) {
 ** Returned value:		character received from serial port or -1 (uint32_t)
 **
 *****************************************************************************/
-uint8_t UARTGetChar( uint8_t portNum, uint8_t blocking ) {
+uint16_t UARTGetChar( uint8_t portNum, uint32_t blocking ) {
   xQueueHandle queue;
 	uint8_t ch;
   portBASE_TYPE status;
@@ -376,6 +376,30 @@ uint8_t UARTGetChar( uint8_t portNum, uint8_t blocking ) {
 	if (status == pdPASS) return ch;
   return NO_CHAR; // [jo:231005] em caso de não ter nenhum caracter na queue
 } // UARTGetChar
+
+
+/**
+ ** Function name:		UARTGetBuffer
+ **
+ ** Descriptions:		Get a buffer of characters from the specified UART port
+ **
+ ** parameters:			portNum : 0 or 1
+ **                      rxBuffer: pointer to the rx_buffer_t structure
+ **                      which contains the buffer and its size 
+ */
+void UARTGetBuffer( uint8_t portNum, rx_buffer_t *rxBuffer) {
+  xQueueHandle queue;
+  uint8_t ch;
+  queue = (portNum == 0 ? UART0Queue : UART1Queue);
+  rxBuffer->size = 0; // [jo:231005] inicializa o tamanho do buffer
+  while(xQueueReceive(queue, &ch, 0) == pdTRUE) { // [jo:231005] recebe todos os caracteres disponíveis na queue
+    if (rxBuffer->size < BUFSIZE) { // [jo:231005] verifica se o buffer não está cheio
+      rxBuffer->buffer[rxBuffer->size++] = ch; // [jo:231005] adiciona o caracter ao buffer e incrementa o tamanho
+    } else {
+      break; // [jo:231005] sai do loop se o buffer estiver cheio
+    }
+  }
+}
 
 /*****************************************************************************
 ** Function name:		UARTSend

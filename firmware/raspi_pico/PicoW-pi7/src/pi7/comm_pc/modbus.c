@@ -265,14 +265,16 @@ void processReadRegister() {
   txBuffer[4] = encodeLow(READ_REGISTER);
   txBuffer[5] = encodeHigh(1); // byte count field  (high part)
   txBuffer[6] = encodeLow(1);  // byte count field (low part)
-  txBuffer[7] = encodeHigh(registerValue);
-  txBuffer[8] = encodeLow(registerValue);
-  lrc = calculateLRC(txBuffer, 1, 8);
-  txBuffer[9] = encodeHigh(lrc);
-  txBuffer[10] = encodeLow(lrc);
-  txBuffer[11] = 0x0d;
-  txBuffer[12] = 0x0a;
-  txBuffer[13] = 0; // null to end as string
+  txBuffer[7] = encodeHigh(registerValue >> 8);
+  txBuffer[8] = encodeLow(registerValue >> 8);
+  txBuffer[9] = encodeHigh(registerValue & 0xff);
+  txBuffer[10] = encodeLow(registerValue & 0xff);
+  lrc = calculateLRC(txBuffer, 1, 10);
+  txBuffer[11] = encodeHigh(lrc);
+  txBuffer[12] = encodeLow(lrc);
+  txBuffer[13] = 0x0d;
+  txBuffer[14] = 0x0a;
+  txBuffer[15] = 0; // null to end as string
   //putCharToSerial(); // [jo:231005] original
   sendTxBufferToSerialUSB(); // [jo:231005] atualizado para 2024
 } // processReadRegister
@@ -312,6 +314,7 @@ void processWriteRegister() {
 } // processWriteRegister
 
 void processWriteFile() {
+  // printf("processWriteFile called\r\n");
   byte requestDataLength;
   byte referenceType;
   uint16_t fileNumber;
@@ -422,7 +425,7 @@ void receiveMessage() {
 
    if (ch != 0xfe && ch != MB_NO_CHAR) { // [jo:231005] modbus só pela serial USB
 
-    printf("[%c]", ch); // [jo:231004] teste
+    //printf("[%c]", ch); // [jo:231004] teste
 
     if (_state == HUNTING_FOR_START_OF_MESSAGE) {
       if (ch == ':') {

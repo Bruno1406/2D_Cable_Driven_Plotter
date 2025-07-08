@@ -34,4 +34,5 @@ extern int tpr_generateLinearSetPoints(tpr_Command* cmd);
 extern int tpr_generateCircularSetPoints(tpr_Command* cmd);
 extern tpr_setPoint tpr_getLine(int line);
 extern void tpr_init();
+extern void tpr_reset();
 #endif

@@ -54,6 +54,28 @@ int ctl_ReadRegister(int registerToRead) {
          return (int)tst_getZ();
       case REG_LINHA:
          return tst_getCurrentLine();
+      case REG_PIC0_STATE:
+         return tst_getPicState(0).state;
+      case REG_PIC0_CE:
+         return tst_getPicState(0).controlEffort;
+      case REG_PIC0_CEP:
+         return tst_getPicState(0).controelEffortP;
+      case REG_PIC0_CEI:
+         return tst_getPicState(0).controlEffortI;
+      case REG_PIC0_CED:
+         return tst_getPicState(0).controlEffortD;
+      case REG_PIC1_STATE:
+         return tst_getPicState(1).state;
+      case REG_PIC1_CE:
+         return tst_getPicState(1).controlEffort;
+      case REG_PIC1_CEP:
+         return tst_getPicState(1).controelEffortP;
+      case REG_PIC1_CEI: 
+         return tst_getPicState(1).controlEffortI;
+      case REG_PIC1_CED:
+         return tst_getPicState(1).controlEffortD;
+      default:
+         printf("Unknown register to read: %d\n", registerToRead);
    } // switch
    return CTL_ERR;
 } // ctl_ReadRegister
@@ -79,6 +101,16 @@ int ctl_WriteRegister(int registerToWrite, int value) {
 	  command.command = CMD_START;
 	  xQueueSend(qControlCommands, &command, portMAX_DELAY);
 	  break;
+   case REG_CALIBRATE:
+     printf("calibrate\n");
+      command.command = CMD_CALIBRATE;
+      xQueueSend(qControlCommands, &command, portMAX_DELAY);
+      break;
+   case REG_PARK:
+      printf("park\n");
+      command.command = CMD_PARK;
+      xQueueSend(qControlCommands, &command, portMAX_DELAY);
+      break;
   default:
 	  printf("unknown register to write\n");
 	  break;
@@ -97,9 +129,11 @@ int ctl_WriteRegister(int registerToWrite, int value) {
     TRUE se escrita foi aceita, FALSE caso contrario.
 *************************************************************************/
 int ctl_WriteProgram(int16_t* programRegisterData, uint16_t programSize) {
+   // printf("ctl_WriteProgram called with size %d\r\n", programSize);
    tpr_Command cmd;
    int err = 0;
    int i = 0;
+   tpr_reset(); // reset the program before writing new data
    while (i < programSize) {
       if (programRegisterData[i] == G00 || programRegisterData[i] == G01) {
          // G00 or G01 command

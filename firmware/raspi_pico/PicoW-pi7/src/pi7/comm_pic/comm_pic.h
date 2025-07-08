@@ -7,14 +7,27 @@
 
 //#include "hardware/uart.h"
 #include <stdint.h>
+#include "uart.h"
 
 typedef struct {
-	uint16_t setPoint1;
-	uint16_t setPoint2;
-} pic_Data;
+	uint8_t command;
+	uint16_t setPointLeft;
+	uint16_t setPointRight;
+} pic_TxData;
+
+// __attribute__((packed)) // ensure no padding bytes are added
+typedef struct {
+	int16_t controlEffort;
+	int16_t controelEffortP;
+	int16_t controlEffortI;
+	int16_t controlEffortD;
+	uint8_t state;
+
+} pic_RxData;
 
 void pic_init(void);
-void pic_sendToPIC(uint8_t portNum, pic_Data data);
-uint8_t pic_receiveCharFromPIC(uint8_t portNum);
+void pic_sendToPIC(pic_TxData data);
+char pic_receiveCharFromPIC(uint8_t portNum);
+void pic_receiveBufferFromPIC(uint8_t portNum, rx_buffer_t *rxBuffer);
 
 #endif
